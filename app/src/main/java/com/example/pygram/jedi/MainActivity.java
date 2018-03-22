@@ -41,13 +41,28 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         ObjRenderer.stop();
     }
+    @Override
+    protected void onDestroy(){
+        super.onDestroy();
+        try {
+            Socket client = new Socket("192.168.1.8", 12345);
+            DataOutputStream out = new DataOutputStream(client.getOutputStream());
+            out.writeUTF("7777");
+            out.flush();
+            out.close();
+            client.close();
+        }
+        catch (IOException e){
+            Log.i("1","IOStuff");
+        }
+    }
 
     private class Renderer implements SensorEventListener{
         private Sensor mRotationVectorSensor;
         private final float[] mRotationMatrix = new float[16];
         private float[] remappedRotationMatrix = new  float[16];
         private float[] orientations = new float[3];
-        private DataOutputStream out;
+        private int pre_color,post_color;
 
         Renderer()
         {
@@ -56,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
             mRotationMatrix[5] = 1;
             mRotationMatrix[10] = 1;
             mRotationMatrix[15] = 1;
+            pre_color = Color.WHITE;
         }
 
         private void start() {
@@ -76,36 +92,76 @@ public class MainActivity extends AppCompatActivity {
                 for(int i = 0; i < 3; i++) {
                     orientations[i] = (float) (Math.toDegrees(orientations[i]));
                 }
-                sendSockets();
+                //Move forward
+                if (orientations[1] > 35) {
+                    if(orientations[2] < -30){
+                        getWindow().getDecorView().setBackgroundColor(post_color = Color.RED);
+                    }
+                    else if(orientations[2] > 30){
+                        getWindow().getDecorView().setBackgroundColor(post_color = Color.BLUE);
+                    }
+                    else {
+                        getWindow().getDecorView().setBackgroundColor(post_color = Color.GREEN);
+                    }
+                }
+                else if(orientations[1] < -15){
+                    if(orientations[2] < -30){
+                        getWindow().getDecorView().setBackgroundColor(post_color = Color.MAGENTA);
+                    }
+                    else if(orientations[2] > 30){
+                        getWindow().getDecorView().setBackgroundColor(post_color = Color.YELLOW);
+                    }
+                    else {
+                        getWindow().getDecorView().setBackgroundColor(post_color=Color.CYAN);
+                    }
+                }
+                else{
+                    getWindow().getDecorView().setBackgroundColor(post_color = Color.BLACK);
+                }
+                if(pre_color != post_color) {
+                    sendSockets();
+                    pre_color = post_color;
+                }
             }
         }
+
 
         public void onAccuracyChanged(Sensor s, int i) {
             //Nothing to put here
         }
         private void sendSockets(){
             try {
-                Socket client = new Socket("192.168.1.8", 12345);
-                out = new DataOutputStream(client.getOutputStream());
+                Socket client = new Socket("192.168.1.8",12345);
+                DataOutputStream out = new DataOutputStream(client.getOutputStream());
                     //Turn left
-                if (orientations[2] < -30) {
-                    out.writeUTF("22");
+                if (orientations[1] > 35) {
+                    if(orientations[2] < -30){
+                        out.writeUTF("2222");
+                    }
+                    else if(orientations[2] > 30){
+                        out.writeUTF("3333");
+                    }
+                    else {
+                        out.writeUTF("1111");
+                    }
                 }
-                //Turn right
-                else if (orientations[2] > 45) {
-                    out.writeUTF("33");
+                else if(orientations[1] < -35){
+                    if(orientations[2] < -30){
+                        out.writeUTF("5555");
+                    }
+                    else if(orientations[2] > 30){
+                        out.writeUTF("6666");
+                    }
+                    else {
+                        out.writeUTF("4444");
+                    }
                 }
-                //Move forward
-                else if (orientations[1] > 30) {
-                    out.writeUTF("11");
+                else{
+                    out.writeUTF("0000");
                 }
-                //Stop
-                else {
-                    out.writeUTF("00");
-                }
-                out.flush();
                 out.close();
                 client.close();
+                Log.i("s","Successful transfer");
             } catch (IOException e) {
                 Log.i("1","IOStuff");
             }
